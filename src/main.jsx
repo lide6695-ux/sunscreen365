@@ -12,10 +12,10 @@ const supabase = supabaseUrl && supabaseAnonKey
 
 const START = "2026-07-14";
 const END = "2027-12-31";
-const today = formatDate(new Date());
 
 function App() {
   const [tab, setTab] = useState("home");
+  const [today, setToday] = useState(getToday);
   const [checks, setChecks] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,10 +25,18 @@ function App() {
   const todayDone = !!checks[today];
   const doneCount = dates.filter((d) => checks[d]).length;
   const percent = Math.round((doneCount / 365) * 1000) / 10;
-  const streak = calcStreak(checks);
+  const streak = calcStreak(checks, today);
 
   useEffect(() => {
     loadChecks();
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextToday = getToday();
+      setToday((current) => current === nextToday ? current : nextToday);
+    }, 60 * 1000);
+    return () => clearInterval(timer);
   }, []);
 
   async function loadChecks() {
@@ -109,7 +117,7 @@ function App() {
       {tab === "months" && (
         <section className="months">
           {monthStarts(START, END).map((date) => (
-            <Month key={date} start={date} checks={checks} onToggle={toggleDate} />
+            <Month key={date} start={date} checks={checks} today={today} onToggle={toggleDate} />
           ))}
         </section>
       )}
@@ -128,7 +136,7 @@ function Stat({ label, value, sub, bar }) {
   );
 }
 
-function Month({ start, checks, onToggle }) {
+function Month({ start, checks, today, onToggle }) {
   const d = parseDate(start);
   const year = d.getFullYear();
   const month = d.getMonth();
@@ -154,7 +162,7 @@ function Month({ start, checks, onToggle }) {
   );
 }
 
-function calcStreak(checks) {
+function calcStreak(checks, today) {
   let count = 0;
   let cursor = parseDate(today);
   while (checks[formatDate(cursor)]) {
@@ -194,6 +202,10 @@ function parseDate(value) {
 
 function formatDate(date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function getToday() {
+  return formatDate(new Date());
 }
 
 function pad(n) {
